@@ -144,6 +144,8 @@ final class InteractiveRequest extends BaseRequest {
             throwExceptionFromTokenResponse(mTokenResponse);
         }
 
+        mAuthCode = sAuthorizationResult.getAuthCode();
+
         return super.postTokenRequest();
     }
 

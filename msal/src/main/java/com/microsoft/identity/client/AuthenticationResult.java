@@ -37,8 +37,13 @@ public final class AuthenticationResult {
     private final String mTenantId;
     private final String mRawIdToken;
     private final String mUniqueId;
+    private final String mAuthCode;
 
     AuthenticationResult(final AccessTokenCacheItem accessTokenCacheItem) throws MsalClientException {
+        this(accessTokenCacheItem, null);
+    }
+
+    AuthenticationResult(final AccessTokenCacheItem accessTokenCacheItem, String authCode) throws MsalClientException {
         mAccessTokenCacheItem = accessTokenCacheItem;
         mUser = accessTokenCacheItem.getUser();
         mRawIdToken = accessTokenCacheItem.getRawIdToken();
@@ -50,6 +55,7 @@ public final class AuthenticationResult {
             mTenantId = "";
             mUniqueId = "";
         }
+        mAuthCode = authCode;
     }
 
     /**
@@ -104,5 +110,12 @@ public final class AuthenticationResult {
     public String[] getScope() {
         final Set<String> scopes = mAccessTokenCacheItem.getScope();
         return scopes.toArray(new String[scopes.size()]);
+    }
+
+    /**
+     * @return The auth code in the redirect uri.
+     */
+    public String getAuthCode() {
+        return mAuthCode;
     }
 }

@@ -49,6 +49,7 @@ abstract class BaseRequest {
     protected final Context mContext;
     protected int mRequestId;
     protected TokenResponse mTokenResponse;
+    protected String mAuthCode;
 
     /**
      * Abstract method, implemented by subclass for its own logic before the token request.
@@ -206,7 +207,7 @@ abstract class BaseRequest {
         tokenCache.saveRefreshToken(authority.getAuthorityHost(), mAuthRequestParameters.getClientId(),
                 mTokenResponse, mRequestContext);
 
-        return new AuthenticationResult(accessTokenCacheItem);
+        return new AuthenticationResult(accessTokenCacheItem, mAuthCode);
     }
 
     /**
