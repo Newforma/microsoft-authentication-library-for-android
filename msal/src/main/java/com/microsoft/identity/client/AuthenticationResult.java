@@ -23,93 +23,31 @@
 
 package com.microsoft.identity.client;
 
-import java.util.Date;
-import java.util.Set;
-
 /**
  * MSAL successful authentication result. When auth succeeds, token will be wrapped into the
  * {@link AuthenticationResult} and passed back through the {@link AuthenticationCallback}.
  */
 public final class AuthenticationResult {
 
-    private final AccessTokenCacheItem mAccessTokenCacheItem;
-    private final User mUser;
-    private final String mTenantId;
-    private final String mRawIdToken;
-    private final String mUniqueId;
     private final String mAuthCode;
+    private final String mRawIdToken;
+    private final IdToken mIdToken;
 
-    AuthenticationResult(final AccessTokenCacheItem accessTokenCacheItem) throws MsalClientException {
-        this(accessTokenCacheItem, null);
-    }
-
-    AuthenticationResult(final AccessTokenCacheItem accessTokenCacheItem, String authCode) throws MsalClientException {
-        mAccessTokenCacheItem = accessTokenCacheItem;
-        mUser = accessTokenCacheItem.getUser();
-        mRawIdToken = accessTokenCacheItem.getRawIdToken();
-        final IdToken idToken = accessTokenCacheItem.getIdToken();
-        if (idToken != null) {
-            mTenantId = idToken.getTenantId();
-            mUniqueId = idToken.getUniqueId();
-        } else {
-            mTenantId = "";
-            mUniqueId = "";
-        }
+    AuthenticationResult(final String authCode, final String rawIdToken) throws MsalClientException {
         mAuthCode = authCode;
+        mRawIdToken = rawIdToken;
+        mIdToken = new IdToken(rawIdToken);
     }
 
-    /**
-     * @return The access token requested.
-     */
-    public String getAccessToken() {
-        return mAccessTokenCacheItem.getAccessToken();
-    }
-
-    /**
-     * @return The expiration time of the access token returned in the Token property.
-     * This value is calculated based on current UTC time measured locally and the value expiresIn returned from the
-     * service.
-     */
-    public Date getExpiresOn() {
-        return mAccessTokenCacheItem.getExpiresOn();
-    }
-
-    /**
-     * @return A unique tenant identifier that was used in token acquisiton. Could be null if tenant information is not
-     * returned by the service.
-     */
     public String getTenantId() {
-        return mTenantId;
-    }
-
-    /**
-     * @return The unique identifier of the user.
-     */
-    public String getUniqueId() {
-        return mUniqueId;
+        return mIdToken.getTenantId();
     }
 
     /**
      * @return The id token returned by the service or null if no id token is returned.
      */
-    public String getIdToken() {
+    public String getRawIdToken() {
         return mRawIdToken;
-    }
-
-    /**
-     * @return The {@link User} that tokens were acquired. Some elements inside {@link User} could be null if not
-     * returned by the service.
-     */
-    public User getUser() {
-        return mUser;
-    }
-
-    /**
-     * @return The scopes returned from the service.
-     */
-    public String[] getScope() {
-        final Set<String> scopes = mAccessTokenCacheItem.getScope();
-        return scopes.toArray(new String[scopes.size()]);
     }
 
     /**
@@ -118,4 +56,5 @@ public final class AuthenticationResult {
     public String getAuthCode() {
         return mAuthCode;
     }
+
 }

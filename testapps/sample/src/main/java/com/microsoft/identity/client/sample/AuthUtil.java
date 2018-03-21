@@ -148,7 +148,7 @@ final class AuthUtil {
         @Override
         public void onSuccess(AuthenticationResult authenticationResult) {
             mAuthResult = authenticationResult;
-            mTask.useAccessToken(mAuthResult.getAccessToken());
+//            mTask.useAccessToken(mAuthResult.getAccessToken());
         }
 
         @Override

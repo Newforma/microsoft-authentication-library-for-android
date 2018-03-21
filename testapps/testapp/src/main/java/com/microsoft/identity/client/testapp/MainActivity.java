@@ -167,9 +167,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             fragment = new ResultFragment();
             final Bundle bundle = new Bundle();
             if (mAuthResult != null) {
-                bundle.putString(ResultFragment.ACCESS_TOKEN, mAuthResult.getAccessToken());
-                bundle.putString(ResultFragment.ID_TOKEN, mAuthResult.getIdToken());
-                bundle.putString(ResultFragment.DISPLAYABLE, mAuthResult.getUser().getDisplayableId());
+//                bundle.putString(ResultFragment.ACCESS_TOKEN, mAuthResult.getAccessToken());
+                bundle.putString(ResultFragment.ID_TOKEN, mAuthResult.getRawIdToken());
+//                bundle.putString(ResultFragment.DISPLAYABLE, mAuthResult.getUser().getDisplayableId());
             }
 
             fragment.setArguments(bundle);

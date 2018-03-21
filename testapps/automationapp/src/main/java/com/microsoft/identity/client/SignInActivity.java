@@ -300,19 +300,19 @@ public class SignInActivity extends AppCompatActivity {
 
     private Intent createIntentFromAuthenticationResult(final AuthenticationResult result) {
         final Intent intent = new Intent();
-        intent.putExtra(AutomationAppConstants.ACCESS_TOKEN, result.getAccessToken());
-        intent.putExtra(AutomationAppConstants.EXPIRES_ON, result.getExpiresOn().getTime());
+//        intent.putExtra(AutomationAppConstants.ACCESS_TOKEN, result.getAccessToken());
+//        intent.putExtra(AutomationAppConstants.EXPIRES_ON, result.getExpiresOn().getTime());
         intent.putExtra(AutomationAppConstants.TENANT_ID, result.getTenantId());
-        intent.putExtra(AutomationAppConstants.ID_TOKEN, result.getIdToken());
-        intent.putExtra(AutomationAppConstants.UNIQUE_ID, result.getUniqueId());
+        intent.putExtra(AutomationAppConstants.ID_TOKEN, result.getRawIdToken());
+//        intent.putExtra(AutomationAppConstants.UNIQUE_ID, result.getUniqueId());
 
-        if (result.getUser() != null) {
-            final User user = result.getUser();
-            intent.putExtra(AutomationAppConstants.DISPLAYABLE_ID, user.getDisplayableId());
-            intent.putExtra(AutomationAppConstants.NAME, user.getName());
-            intent.putExtra(AutomationAppConstants.UNIQUE_USER_IDENTIFIER, user.getUserIdentifier());
-            intent.putExtra(AutomationAppConstants.IDENTITY_PROVIDER, user.getIdentityProvider());
-        }
+//        if (result.getUser() != null) {
+//            final User user = result.getUser();
+//            intent.putExtra(AutomationAppConstants.DISPLAYABLE_ID, user.getDisplayableId());
+//            intent.putExtra(AutomationAppConstants.NAME, user.getName());
+//            intent.putExtra(AutomationAppConstants.UNIQUE_USER_IDENTIFIER, user.getUserIdentifier());
+//            intent.putExtra(AutomationAppConstants.IDENTITY_PROVIDER, user.getIdentityProvider());
+//        }
 
         return intent;
     }

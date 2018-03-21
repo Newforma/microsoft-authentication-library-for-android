@@ -46,10 +46,11 @@ final class OauthConstants {
         static final String CLIENT_INFO = "client_info";
         static final String LOGIN_REQ = "login_req";
         static final String DOMAIN_REQ = "domain_req";
+        static final String ID_TOKEN = "id_token";
     }
 
     static final class Oauth2ResponseType {
-        static final String CODE = "code";
+        static final String ID_TOKEN_CODE = "id_token code";
     }
 
     static final class Oauth2GrantType {

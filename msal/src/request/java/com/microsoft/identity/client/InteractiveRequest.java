@@ -124,6 +124,9 @@ final class InteractiveRequest extends BaseRequest {
                     + " request to return.", e);
         }
 
+        mAuthCode = sAuthorizationResult.getAuthCode();
+        mIdToken = sAuthorizationResult.getIdToken();
+
         processAuthorizationResult(sAuthorizationResult);
     }
 
@@ -136,17 +139,6 @@ final class InteractiveRequest extends BaseRequest {
                 mAuthRequestParameters.getRedirectUri());
         // Adding code verifier per PKCE spec. See https://tools.ietf.org/html/rfc7636
         oauth2Client.addBodyParameter(OauthConstants.Oauth2Parameters.CODE_VERIFIER, mPKCEChallenge.mCodeVerifier);
-    }
-
-    @Override
-    AuthenticationResult postTokenRequest() throws MsalUiRequiredException, MsalServiceException, MsalClientException {
-        if (!isAccessTokenReturned()) {
-            throwExceptionFromTokenResponse(mTokenResponse);
-        }
-
-        mAuthCode = sAuthorizationResult.getAuthCode();
-
-        return super.postTokenRequest();
     }
 
     static synchronized void onActivityResult(int requestCode, int resultCode, final Intent data) {
@@ -187,7 +179,7 @@ final class InteractiveRequest extends BaseRequest {
                 MsalUtils.convertSetToString(requestedScopes, " "));
         requestParameters.put(OauthConstants.Oauth2Parameters.CLIENT_ID, mAuthRequestParameters.getClientId());
         requestParameters.put(OauthConstants.Oauth2Parameters.REDIRECT_URI, mAuthRequestParameters.getRedirectUri());
-        requestParameters.put(OauthConstants.Oauth2Parameters.RESPONSE_TYPE, OauthConstants.Oauth2ResponseType.CODE);
+        requestParameters.put(OauthConstants.Oauth2Parameters.RESPONSE_TYPE, OauthConstants.Oauth2ResponseType.ID_TOKEN_CODE);
         requestParameters.put(OauthConstants.OauthHeader.CORRELATION_ID,
                 mAuthRequestParameters.getRequestContext().getCorrelationId().toString());
         requestParameters.putAll(PlatformIdHelper.getPlatformIdParameters());
@@ -197,9 +189,6 @@ final class InteractiveRequest extends BaseRequest {
 
         // append state in the query parameters
         requestParameters.put(OauthConstants.Oauth2Parameters.STATE, encodeProtocolState());
-
-        // Add PKCE Challenge
-        addPKCEChallengeToRequestParameters(requestParameters);
 
         // Enforce session continuation if user is provided in the API request
         addSessionContinuationQps(requestParameters);

@@ -36,14 +36,16 @@ final class AuthorizationResult {
 
     private final String mAuthCode;
     private final String mState;
+    private final String mIdToken;
     private final AuthorizationStatus mAuthorizationStatus;
     private final String mError;
     private final String mErrorDescription;
 
-    private AuthorizationResult(final String authCode, final String state) {
+    private AuthorizationResult(final String authCode, final String state, final String idToken) {
         mAuthorizationStatus = AuthorizationStatus.SUCCESS;
         mAuthCode = authCode;
         mState = state;
+        mIdToken = idToken;
 
         mError = null;
         mErrorDescription = null;
@@ -56,6 +58,7 @@ final class AuthorizationResult {
 
         mAuthCode = null;
         mState = null;
+        mIdToken = null;
     }
 
     public static AuthorizationResult create(int resultCode, final Intent data) {
@@ -84,9 +87,18 @@ final class AuthorizationResult {
 
     public static AuthorizationResult parseAuthorizationResponse(final String returnUri) {
         final Uri responseUri = Uri.parse(returnUri);
-        final String result = responseUri.getQuery();
+        final String fragmentResult = responseUri.getFragment();
+        final String queryResult = responseUri.getQuery();
 
+        final String result;
         final AuthorizationResult authorizationResult;
+
+        if(!MsalUtils.isEmpty(fragmentResult)) {
+            result = fragmentResult;
+        } else {
+            result = queryResult;
+        }
+
         if (MsalUtils.isEmpty(result)) {
             Logger.warning(TAG, null, "Invalid server response, empty query string from the webview redirect.");
             authorizationResult = getAuthorizationResultWithInvalidServerResponse();
@@ -101,7 +113,7 @@ final class AuthorizationResult {
                 } else {
                     Logger.info(TAG, null, "Auth code is successfully returned from webview redirect.");
                     authorizationResult = new AuthorizationResult(urlParameters.get(
-                            OauthConstants.Oauth2Parameters.CODE), state);
+                            OauthConstants.Oauth2Parameters.CODE), state, urlParameters.get(OauthConstants.Oauth2Parameters.ID_TOKEN));
                 }
             } else if (urlParameters.containsKey(OauthConstants.Authorize.ERROR)) {
                 final String error = urlParameters.get(OauthConstants.Authorize.ERROR);
@@ -132,6 +144,13 @@ final class AuthorizationResult {
      */
     String getState() {
         return mState;
+    }
+
+    /**
+     * @return The id token in the redirect uri.
+     */
+    String getIdToken() {
+        return mIdToken;
     }
 
     /**

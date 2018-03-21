@@ -59,7 +59,7 @@ final class SilentRequest extends BaseRequest {
 
             if (accessTokenCacheItem != null) {
                 Logger.info(TAG, mAuthRequestParameters.getRequestContext(), "Access token is found, returning cached AT.");
-                mAuthResult = new AuthenticationResult(accessTokenCacheItem);
+                mAuthResult = new AuthenticationResult(mAuthCode, mIdToken);
                 return;
             }
         } else {
@@ -114,10 +114,6 @@ final class SilentRequest extends BaseRequest {
         // if there is an valid access token returned, mAuthResult will already be set
         if (mAuthResult != null) {
             return mAuthResult;
-        }
-
-        if (!isAccessTokenReturned()) {
-            throwExceptionFromTokenResponse(mTokenResponse);
         }
 
         return super.postTokenRequest();

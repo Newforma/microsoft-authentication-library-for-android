@@ -49,7 +49,9 @@ abstract class BaseRequest {
     protected final Context mContext;
     protected int mRequestId;
     protected TokenResponse mTokenResponse;
+
     protected String mAuthCode;
+    protected String mIdToken;
 
     /**
      * Abstract method, implemented by subclass for its own logic before the token request.
@@ -109,7 +111,6 @@ abstract class BaseRequest {
             public void run() {
                 try {
                     preTokenRequest();
-                    performTokenRequest();
                     final AuthenticationResult result = postTokenRequest();
 
                     Logger.info(TAG, mAuthRequestParameters.getRequestContext(), "Token request succeeds.");
@@ -197,17 +198,7 @@ abstract class BaseRequest {
      * @throws MsalException
      */
     AuthenticationResult postTokenRequest() throws MsalUiRequiredException, MsalServiceException, MsalClientException {
-        checkUserMismatch();
-
-        final TokenCache tokenCache = mAuthRequestParameters.getTokenCache();
-        final Authority authority = mAuthRequestParameters.getAuthority();
-        authority.updateTenantLessAuthority(new IdToken(mTokenResponse.getRawIdToken()).getTenantId());
-        final AccessTokenCacheItem accessTokenCacheItem = tokenCache.saveAccessToken(authority.getAuthority(),
-                mAuthRequestParameters.getClientId(), mTokenResponse, mRequestContext);
-        tokenCache.saveRefreshToken(authority.getAuthorityHost(), mAuthRequestParameters.getClientId(),
-                mTokenResponse, mRequestContext);
-
-        return new AuthenticationResult(accessTokenCacheItem, mAuthCode);
+        return new AuthenticationResult(mAuthCode, mIdToken);
     }
 
     /**
