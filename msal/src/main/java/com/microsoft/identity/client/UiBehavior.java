@@ -42,5 +42,10 @@ public enum UiBehavior {
     /**
      * AcquireToken will send prompt=consent to the authorize endpoint.  The user will be prompted to consent even if consent was granted before.
      */
-    CONSENT
+    CONSENT,
+
+    /**
+     * AcquireToken will send prompt=none to the authorize endpoint.
+     */
+    NONE
 }

@@ -181,6 +181,7 @@ final class HttpRequest {
                         .setQueryParameters(mRequestUrl.getQuery());
         Telemetry.getInstance().startEvent(mRequestContext.getTelemetryRequestId(), httpEventBuilder);
         final HttpURLConnection urlConnection = setupConnection();
+        HttpURLConnection.setFollowRedirects(true);
         urlConnection.setRequestMethod(mRequestMethod);
         setRequestBody(urlConnection, mRequestContent, mRequestContentType);
 

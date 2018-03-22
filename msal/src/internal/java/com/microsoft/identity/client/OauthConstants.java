@@ -67,6 +67,7 @@ final class OauthConstants {
         static final String LOGIN = "login";
         static final String SELECT_ACCOUNT = "select_account";
         static final String CONSENT = "consent";
+        static final String NONE = "none";
     }
 
     /**

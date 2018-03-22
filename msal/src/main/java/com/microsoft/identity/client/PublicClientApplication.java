@@ -561,6 +561,14 @@ public final class PublicClientApplication {
         acquireTokenSilent(scopes, user, authority, forceRefresh, wrapCallbackForTelemetryIntercept(apiEventBuilder, callback), telemetryRequestId, apiEventBuilder);
     }
 
+    public void acquireTokenSilentAsync(@NonNull final String[] scopes,
+                                        final String extraQueryParams, final String authority,
+                                        @NonNull final AuthenticationCallback callback) {
+        final String telemetryRequestId = Telemetry.generateNewRequestId();
+        ApiEvent.Builder apiEventBuilder = createApiEventBuilder(telemetryRequestId, ACQUIRE_TOKEN_SILENT_ASYNC_WITH_USER);
+        acquireTokenSilent(scopes, extraQueryParams, authority, callback, telemetryRequestId, apiEventBuilder);
+    }
+
 
     /**
      * Deletes all matching tokens (access & refresh tokens) for the {@link User} instance from the application cache.
@@ -699,6 +707,24 @@ public final class PublicClientApplication {
         Logger.info(TAG, requestContext, "Preparing a new silent request");
         final SilentRequest request = new SilentRequest(mAppContext, requestParameters, forceRefresh, user);
         request.setIsAuthorityProvided(!MsalUtils.isEmpty(authority));
+        request.getToken(callback);
+    }
+
+    private void acquireTokenSilent(final String[] scopes, final String extraQueryParams, final String authority,
+                                    final AuthenticationCallback callback, final String telemetryRequestId, final ApiEvent.Builder apiEventBuilder) {
+        if (callback == null) {
+            throw new IllegalArgumentException("callback is null");
+        }
+
+        final AuthenticationRequestParameters requestParameters = getRequestParameters(authority, scopes, null,
+                extraQueryParams, UiBehavior.NONE, null, telemetryRequestId);
+
+        // add properties to our telemetry data
+        apiEventBuilder
+                .setAuthorityType(requestParameters.getAuthority().mAuthorityType)
+                .setCorrelationId(requestParameters.getRequestContext().getCorrelationId());
+
+        final SilentRequest request = new SilentRequest(mAppContext, requestParameters, false, null);
         request.getToken(callback);
     }
 

@@ -24,6 +24,20 @@
 package com.microsoft.identity.client;
 
 import android.content.Context;
+import android.util.Base64;
+import android.webkit.CookieManager;
+
+import org.json.JSONException;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Request handling silent flow. Silent flow will try to find a valid RT, if no valid AT exists, it will
@@ -31,6 +45,9 @@ import android.content.Context;
  */
 final class SilentRequest extends BaseRequest {
     private static final String TAG = SilentRequest.class.getSimpleName();
+
+    private final String CODE = "code";
+    private final String ID_TOKEN = "id_token";
 
     private RefreshTokenCacheItem mRefreshTokenCacheItem;
     private final boolean mForceRefresh;
@@ -48,31 +65,148 @@ final class SilentRequest extends BaseRequest {
 
     @Override
     void preTokenRequest() throws MsalClientException, MsalUiRequiredException, MsalServiceException, MsalUserCancelException {
-        final TokenCache tokenCache = mAuthRequestParameters.getTokenCache();
+        super.preTokenRequest();
+        if(mUser != null) {
+            final TokenCache tokenCache = mAuthRequestParameters.getTokenCache();
 
-        final AccessTokenCacheItem tokenCacheItemAuthorityNotProvided = mIsAuthorityProvided ? null : tokenCache.findAccessTokenItemAuthorityNotProvided(
-                mAuthRequestParameters, mUser);
-        // lookup AT first.
-        if (!mForceRefresh) {
-            final AccessTokenCacheItem accessTokenCacheItem = mIsAuthorityProvided ? tokenCache.findAccessToken(mAuthRequestParameters, mUser)
-                    : tokenCacheItemAuthorityNotProvided;
+            final AccessTokenCacheItem tokenCacheItemAuthorityNotProvided = mIsAuthorityProvided ? null : tokenCache.findAccessTokenItemAuthorityNotProvided(
+                    mAuthRequestParameters, mUser);
+            // lookup AT first.
+            if (!mForceRefresh) {
+                final AccessTokenCacheItem accessTokenCacheItem = mIsAuthorityProvided ? tokenCache.findAccessToken(mAuthRequestParameters, mUser)
+                        : tokenCacheItemAuthorityNotProvided;
 
-            if (accessTokenCacheItem != null) {
-                Logger.info(TAG, mAuthRequestParameters.getRequestContext(), "Access token is found, returning cached AT.");
-                mAuthResult = new AuthenticationResult(mAuthCode, mIdToken);
-                return;
+                if (accessTokenCacheItem != null) {
+                    Logger.info(TAG, mAuthRequestParameters.getRequestContext(), "Access token is found, returning cached AT.");
+                    mAuthResult = new AuthenticationResult(mAuthCode, mIdToken);
+                    return;
+                }
+            } else {
+                Logger.info(TAG, mAuthRequestParameters.getRequestContext(), "ForceRefresh is set to true, skipping AT lookup.");
+            }
+
+            mRefreshTokenCacheItem = tokenCache.findRefreshToken(mAuthRequestParameters, mUser);
+            if (mRefreshTokenCacheItem == null) {
+                Logger.info(TAG, mAuthRequestParameters.getRequestContext(), "No refresh token item is found.");
+                throw new MsalUiRequiredException(MsalUiRequiredException.NO_TOKENS_FOUND, "No refresh token was found. ");
             }
         } else {
-            Logger.info(TAG, mAuthRequestParameters.getRequestContext(), "ForceRefresh is set to true, skipping AT lookup.");
+            refreshUrl();
+        }
+    }
+
+    private void refreshUrl() throws MsalClientException, MsalServiceException {
+        final URL endpoint1;
+        final Map<String, String> headers1 = new HashMap<>(PlatformIdHelper.getPlatformIdParameters());
+        final HttpResponse httpResponse1;
+        try {
+            String url = appendQueryStringToAuthorizeEndpoint();
+            endpoint1 = new URL(url);
+            httpResponse1 = HttpRequest.sendGet(endpoint1, headers1, mAuthRequestParameters.getRequestContext());
+        } catch (MalformedURLException e) {
+            throw new MsalClientException(MsalClientException.MALFORMED_URL, e.getMessage(), e);
+        } catch (UnsupportedEncodingException e) {
+            throw new MsalClientException(MsalClientException.UNSUPPORTED_ENCODING, e.getMessage(), e);
+        } catch (IOException e) {
+            throw new MsalClientException(MsalClientException.IO_ERROR, e.getMessage(), e);
         }
 
-        mRefreshTokenCacheItem = tokenCache.findRefreshToken(mAuthRequestParameters, mUser);
-        if (mRefreshTokenCacheItem == null) {
-            Logger.info(TAG, mAuthRequestParameters.getRequestContext(), "No refresh token item is found.");
-            throw new MsalUiRequiredException(MsalUiRequiredException.NO_TOKENS_FOUND, "No refresh token was found. ");
+        ////
+//
+//
+//        final URL endpoint2;
+//        final Map<String, String> headers2 = new HashMap<>(PlatformIdHelper.getPlatformIdParameters());
+//        final HttpResponse httpResponse2;
+//        try {
+//            String url = appendQueryStringToAuthorizeEndpoint();
+//            endpoint2 = new URL(url);
+//            httpResponse2 = HttpRequest.sendGet(endpoint2, headers2, mAuthRequestParameters.getRequestContext());
+//        } catch (MalformedURLException e) {
+//            throw new MsalClientException(MsalClientException.MALFORMED_URL, e.getMessage(), e);
+//        } catch (UnsupportedEncodingException e) {
+//            throw new MsalClientException(MsalClientException.UNSUPPORTED_ENCODING, e.getMessage(), e);
+//        } catch (IOException e) {
+//            throw new MsalClientException(MsalClientException.IO_ERROR, e.getMessage(), e);
+//        }
+
+
+//        Map<String, String> authorizeResponse = parseResponseItems(httpResponse);
+//        mAuthCode = authorizeResponse.get(CODE);
+//        mIdToken = authorizeResponse.get(ID_TOKEN);
+    }
+
+    private Map<String, String> parseResponseItems(final HttpResponse response) throws MsalServiceException, MsalClientException {
+        if (MsalUtils.isEmpty(response.getBody())) {
+            throw new MsalServiceException(MsalServiceException.SERVICE_NOT_AVAILABLE, "Empty response body", response.getStatusCode(), null);
         }
 
-        super.preTokenRequest();
+        final Map<String, String> responseItems;
+        try {
+            responseItems = MsalUtils.extractJsonObjectIntoMap(response.getBody());
+        } catch (final JSONException e) {
+            throw new MsalClientException(MsalClientException.JSON_PARSE_FAILURE, "Fail to parse JSON", e);
+        }
+
+        return responseItems;
+    }
+
+    String appendQueryStringToAuthorizeEndpoint() throws UnsupportedEncodingException, MsalClientException {
+        String authorizationUrl = MsalUtils.appendQueryParameterToUrl(
+                mAuthRequestParameters.getAuthority().getAuthorizeEndpoint(),
+                createAuthorizationRequestParameters());
+
+        Logger.infoPII(TAG, mAuthRequestParameters.getRequestContext(), "Request uri to authorize endpoint is: " + authorizationUrl);
+        return authorizationUrl;
+    }
+
+    private Map<String, String> createAuthorizationRequestParameters() throws UnsupportedEncodingException, MsalClientException {
+        final Map<String, String> requestParameters = new HashMap<>();
+
+        final Set<String> scopes = new HashSet<>(mAuthRequestParameters.getScope());
+        final Set<String> requestedScopes = getDecoratedScope(scopes);
+        requestParameters.put(OauthConstants.Oauth2Parameters.SCOPE,
+                MsalUtils.convertSetToString(requestedScopes, " "));
+        requestParameters.put(OauthConstants.Oauth2Parameters.CLIENT_ID, mAuthRequestParameters.getClientId());
+        requestParameters.put(OauthConstants.Oauth2Parameters.REDIRECT_URI, mAuthRequestParameters.getRedirectUri());
+        requestParameters.put(OauthConstants.Oauth2Parameters.RESPONSE_TYPE, OauthConstants.Oauth2ResponseType.ID_TOKEN_CODE);
+        requestParameters.put(OauthConstants.OauthHeader.CORRELATION_ID,
+                mAuthRequestParameters.getRequestContext().getCorrelationId().toString());
+        requestParameters.putAll(PlatformIdHelper.getPlatformIdParameters());
+
+        // append state in the query parameters
+        requestParameters.put(OauthConstants.Oauth2Parameters.STATE, encodeProtocolState());
+
+        // adding extra qp
+        if (!MsalUtils.isEmpty(mAuthRequestParameters.getExtraQueryParam())) {
+            appendExtraQueryParameters(mAuthRequestParameters.getExtraQueryParam(), requestParameters);
+        }
+
+        if (!MsalUtils.isEmpty(mAuthRequestParameters.getSliceParameters())) {
+            appendExtraQueryParameters(mAuthRequestParameters.getSliceParameters(), requestParameters);
+        }
+
+        return requestParameters;
+    }
+
+    private String encodeProtocolState() throws UnsupportedEncodingException {
+        final String state = String.format("a=%s&r=%s", MsalUtils.urlFormEncode(
+                mAuthRequestParameters.getAuthority().getAuthority()),
+                MsalUtils.urlFormEncode(MsalUtils.convertSetToString(
+                        mAuthRequestParameters.getScope(), " ")));
+        return Base64.encodeToString(state.getBytes("UTF-8"), Base64.NO_PADDING | Base64.URL_SAFE);
+    }
+
+    private void appendExtraQueryParameters(final String queryParams, final Map<String, String> requestParams) throws MsalClientException {
+        final Map<String, String> extraQps = MsalUtils.decodeUrlToMap(queryParams, "&");
+        final Set<Map.Entry<String, String>> extraQpEntries = extraQps.entrySet();
+        for (final Map.Entry<String, String> extraQpEntry : extraQpEntries) {
+            if (requestParams.containsKey(extraQpEntry.getKey())) {
+                throw new MsalClientException(MsalClientException.DUPLICATE_QUERY_PARAMETER, "Extra query parameter " + extraQpEntry.getKey() + " is already sent by "
+                        + "the SDK. ");
+            }
+
+            requestParams.put(extraQpEntry.getKey(), extraQpEntry.getValue());
+        }
     }
 
     @Override

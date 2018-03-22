@@ -244,6 +244,8 @@ final class InteractiveRequest extends BaseRequest {
             requestParameters.put(OauthConstants.Oauth2Parameters.PROMPT, OauthConstants.PromptValue.SELECT_ACCOUNT);
         } else if (uiBehavior == UiBehavior.CONSENT) {
             requestParameters.put(OauthConstants.Oauth2Parameters.PROMPT, OauthConstants.PromptValue.CONSENT);
+        } else if (uiBehavior == UiBehavior.NONE) {
+            requestParameters.put(OauthConstants.Oauth2Parameters.PROMPT, OauthConstants.PromptValue.NONE);
         }
     }
 
