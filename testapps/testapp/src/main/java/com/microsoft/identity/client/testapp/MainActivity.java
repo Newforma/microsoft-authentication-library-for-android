@@ -326,7 +326,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         try {
             mApplication.acquireToken(this, scopes, loginHint, uiBehavior, extraQueryParam, extraScope,
-                    null, getAuthenticationCallback());
+                    null, getAuthenticationCallback(), "");
         } catch (IllegalArgumentException e) {
             showMessage("Scope cannot be blank.");
         }

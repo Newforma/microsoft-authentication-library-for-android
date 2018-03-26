@@ -58,7 +58,7 @@ public final class BrowserTabActivity extends Activity {
         super.onCreate(savedInstanceState);
         Logger.info(TAG, null, "BrowserTabActivity onCreate: received redirect from system webview.");
 
-        final Intent intent = new Intent(this, AuthenticationActivity.class);
+        final Intent intent = new Intent(this, WebAuthenticationActivity.class);
         intent.putExtra(Constants.CUSTOM_TAB_REDIRECT, getIntent().getDataString());
         Logger.verbosePII(TAG, null, getIntent().getDataString());
 

@@ -181,7 +181,7 @@ final class HttpRequest {
                         .setQueryParameters(mRequestUrl.getQuery());
         Telemetry.getInstance().startEvent(mRequestContext.getTelemetryRequestId(), httpEventBuilder);
         final HttpURLConnection urlConnection = setupConnection();
-        HttpURLConnection.setFollowRedirects(true);
+        HttpURLConnection.setFollowRedirects(false);
         urlConnection.setRequestMethod(mRequestMethod);
         setRequestBody(urlConnection, mRequestContent, mRequestContentType);
 
@@ -223,7 +223,7 @@ final class HttpRequest {
 
         urlConnection.setConnectTimeout(MsalSettings.INSTANCE.getConnectTimeOut());
         urlConnection.setReadTimeout(MsalSettings.INSTANCE.getReadTimeOut());
-        urlConnection.setInstanceFollowRedirects(true);
+        urlConnection.setInstanceFollowRedirects(false);
         urlConnection.setUseCaches(false);
         urlConnection.setDoInput(true);
 

@@ -27,8 +27,6 @@ import android.content.Context;
 import android.util.Base64;
 import android.webkit.CookieManager;
 
-import org.json.JSONException;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -45,9 +43,6 @@ import java.util.Set;
  */
 final class SilentRequest extends BaseRequest {
     private static final String TAG = SilentRequest.class.getSimpleName();
-
-    private final String CODE = "code";
-    private final String ID_TOKEN = "id_token";
 
     private RefreshTokenCacheItem mRefreshTokenCacheItem;
     private final boolean mForceRefresh;
@@ -96,13 +91,19 @@ final class SilentRequest extends BaseRequest {
     }
 
     private void refreshUrl() throws MsalClientException, MsalServiceException {
-        final URL endpoint1;
-        final Map<String, String> headers1 = new HashMap<>(PlatformIdHelper.getPlatformIdParameters());
-        final HttpResponse httpResponse1;
         try {
             String url = appendQueryStringToAuthorizeEndpoint();
-            endpoint1 = new URL(url);
-            httpResponse1 = HttpRequest.sendGet(endpoint1, headers1, mAuthRequestParameters.getRequestContext());
+            HttpResponse response = HttpRequest.sendGet(new URL(url), getCookieHeader(url), mAuthRequestParameters.getRequestContext());
+
+            url = getLocation(response);
+            response = HttpRequest.sendGet(new URL(url), getCookieHeader(url), mAuthRequestParameters.getRequestContext());
+
+            String authorizationUrl = getLocation(response);
+            AuthorizationResult authorizationResult = AuthorizationResult.parseAuthorizationResponse(authorizationUrl);
+
+            mAuthCode = authorizationResult.getAuthCode();
+            mIdToken = authorizationResult.getIdToken();
+            mAuthResult = new AuthenticationResult(mAuthCode, mIdToken);
         } catch (MalformedURLException e) {
             throw new MsalClientException(MsalClientException.MALFORMED_URL, e.getMessage(), e);
         } catch (UnsupportedEncodingException e) {
@@ -110,44 +111,31 @@ final class SilentRequest extends BaseRequest {
         } catch (IOException e) {
             throw new MsalClientException(MsalClientException.IO_ERROR, e.getMessage(), e);
         }
-
-        ////
-//
-//
-//        final URL endpoint2;
-//        final Map<String, String> headers2 = new HashMap<>(PlatformIdHelper.getPlatformIdParameters());
-//        final HttpResponse httpResponse2;
-//        try {
-//            String url = appendQueryStringToAuthorizeEndpoint();
-//            endpoint2 = new URL(url);
-//            httpResponse2 = HttpRequest.sendGet(endpoint2, headers2, mAuthRequestParameters.getRequestContext());
-//        } catch (MalformedURLException e) {
-//            throw new MsalClientException(MsalClientException.MALFORMED_URL, e.getMessage(), e);
-//        } catch (UnsupportedEncodingException e) {
-//            throw new MsalClientException(MsalClientException.UNSUPPORTED_ENCODING, e.getMessage(), e);
-//        } catch (IOException e) {
-//            throw new MsalClientException(MsalClientException.IO_ERROR, e.getMessage(), e);
-//        }
-
-
-//        Map<String, String> authorizeResponse = parseResponseItems(httpResponse);
-//        mAuthCode = authorizeResponse.get(CODE);
-//        mIdToken = authorizeResponse.get(ID_TOKEN);
     }
 
-    private Map<String, String> parseResponseItems(final HttpResponse response) throws MsalServiceException, MsalClientException {
-        if (MsalUtils.isEmpty(response.getBody())) {
-            throw new MsalServiceException(MsalServiceException.SERVICE_NOT_AVAILABLE, "Empty response body", response.getStatusCode(), null);
+    private Map<String,String> getCookieHeader(String url) {
+        Map<String,String> headers = new HashMap<>();
+
+        CookieManager manager = CookieManager.getInstance();
+        if(manager.hasCookies()) {
+            headers.put("Cookie", manager.getCookie(url));
         }
 
-        final Map<String, String> responseItems;
-        try {
-            responseItems = MsalUtils.extractJsonObjectIntoMap(response.getBody());
-        } catch (final JSONException e) {
-            throw new MsalClientException(MsalClientException.JSON_PARSE_FAILURE, "Fail to parse JSON", e);
+        return headers;
+    }
+
+    private String getLocation(HttpResponse response) {
+        Map<String, List<String>> headers = response.getHeaders();
+
+        if(headers.containsKey("Location")) {
+            List<String> values = headers.get("Location");
+
+            if(!values.isEmpty()) {
+                return values.get(0);
+            }
         }
 
-        return responseItems;
+        return null;
     }
 
     String appendQueryStringToAuthorizeEndpoint() throws UnsupportedEncodingException, MsalClientException {

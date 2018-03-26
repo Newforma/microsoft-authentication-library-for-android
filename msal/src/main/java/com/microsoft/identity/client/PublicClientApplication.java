@@ -121,11 +121,6 @@ public final class PublicClientApplication {
     private String mComponent;
 
     /**
-     * The redirect URI for the application.
-     */
-    private String mRedirectUri;
-
-    /**
      * When set to true (default), MSAL will compare the application's authority against well-known URL
      * templates representing well-formed authorities. It is useful when the authority is obtained at
      * run time to prevent MSAL from displaying authentication prompts from malicious pages.
@@ -223,8 +218,6 @@ public final class PublicClientApplication {
         DefaultEvent.initializeDefaults(
                 Defaults.forApplication(mAppContext, mClientId)
         );
-        mRedirectUri = createRedirectUri(mClientId);
-        validateInputParameters();
 
         // Since network request is sent from the sdk, if calling app doesn't declare the internet permission in the
         // manifest, we cannot make the network call.
@@ -352,7 +345,7 @@ public final class PublicClientApplication {
         ApiEvent.Builder apiEventBuilder = createApiEventBuilder(telemetryRequestId, API_ID_ACQUIRE);
 
         acquireTokenInteractive(activity, scopes, "", UiBehavior.SELECT_ACCOUNT, "", null, "", null,
-                wrapCallbackForTelemetryIntercept(apiEventBuilder, callback), telemetryRequestId, apiEventBuilder);
+                wrapCallbackForTelemetryIntercept(apiEventBuilder, callback), telemetryRequestId, apiEventBuilder, null);
     }
 
     /**
@@ -381,7 +374,7 @@ public final class PublicClientApplication {
         ApiEvent.Builder apiEventBuilder = createApiEventBuilder(telemetryRequestId, API_ID_ACQUIRE_WITH_HINT);
 
         acquireTokenInteractive(activity, scopes, loginHint, UiBehavior.SELECT_ACCOUNT, "", null, "", null,
-                wrapCallbackForTelemetryIntercept(apiEventBuilder, callback), telemetryRequestId, apiEventBuilder);
+                wrapCallbackForTelemetryIntercept(apiEventBuilder, callback), telemetryRequestId, apiEventBuilder, null);
     }
 
     /**
@@ -412,7 +405,7 @@ public final class PublicClientApplication {
         ApiEvent.Builder apiEventBuilder = createApiEventBuilder(telemetryRequestId, API_ID_ACQUIRE_WITH_HINT_BEHAVIOR_AND_PARAMETERS);
 
         acquireTokenInteractive(activity, scopes, loginHint, uiBehavior == null ? UiBehavior.SELECT_ACCOUNT : uiBehavior,
-                extraQueryParameters, null, "", null, wrapCallbackForTelemetryIntercept(apiEventBuilder, callback), telemetryRequestId, apiEventBuilder);
+                extraQueryParameters, null, "", null, wrapCallbackForTelemetryIntercept(apiEventBuilder, callback), telemetryRequestId, apiEventBuilder, null);
     }
 
     /**
@@ -443,7 +436,7 @@ public final class PublicClientApplication {
         ApiEvent.Builder apiEventBuilder = createApiEventBuilder(telemetryRequestId, API_ID_ACQUIRE_WITH_USER_BEHAVIOR_AND_PARAMETERS);
 
         acquireTokenInteractive(activity, scopes, "", uiBehavior, extraQueryParameter, null, "", user, wrapCallbackForTelemetryIntercept(
-                apiEventBuilder, callback), telemetryRequestId, apiEventBuilder);
+                apiEventBuilder, callback), telemetryRequestId, apiEventBuilder, null);
     }
 
     /**
@@ -472,12 +465,12 @@ public final class PublicClientApplication {
      */
     public void acquireToken(@NonNull final Activity activity, @NonNull final String[] scopes, final String loginHint, final UiBehavior uiBehavior,
                              final String extraQueryParams, final String[] extraScopesToConsent, final String authority,
-                             @NonNull final AuthenticationCallback callback) {
+                             @NonNull final AuthenticationCallback callback, String redirectUri) {
         final String telemetryRequestId = Telemetry.generateNewRequestId();
         ApiEvent.Builder apiEventBuilder = createApiEventBuilder(telemetryRequestId, API_ID_ACQUIRE_WITH_HINT_BEHAVIOR_PARAMETERS_AND_AUTHORITY);
 
         acquireTokenInteractive(activity, scopes, loginHint, uiBehavior == null ? UiBehavior.SELECT_ACCOUNT : uiBehavior,
-                extraQueryParams, extraScopesToConsent, authority, null, wrapCallbackForTelemetryIntercept(apiEventBuilder, callback), telemetryRequestId, apiEventBuilder);
+                extraQueryParams, extraScopesToConsent, authority, null, wrapCallbackForTelemetryIntercept(apiEventBuilder, callback), telemetryRequestId, apiEventBuilder, redirectUri);
     }
 
     /**
@@ -511,7 +504,7 @@ public final class PublicClientApplication {
         ApiEvent.Builder apiEventBuilder = createApiEventBuilder(telemetryRequestId, API_ID_ACQUIRE_WITH_USER_BEHAVIOR_PARAMETERS_AND_AUTHORITY);
 
         acquireTokenInteractive(activity, scopes, "", uiBehavior == null ? UiBehavior.SELECT_ACCOUNT : uiBehavior, extraQueryParams, extraScopesToConsent,
-                authority, user, wrapCallbackForTelemetryIntercept(apiEventBuilder, callback), telemetryRequestId, apiEventBuilder);
+                authority, user, wrapCallbackForTelemetryIntercept(apiEventBuilder, callback), telemetryRequestId, apiEventBuilder, null);
     }
 
     // Silent call APIs.
@@ -563,10 +556,10 @@ public final class PublicClientApplication {
 
     public void acquireTokenSilentAsync(@NonNull final String[] scopes,
                                         final String extraQueryParams, final String authority,
-                                        @NonNull final AuthenticationCallback callback) {
+                                        @NonNull final AuthenticationCallback callback, final String redirectUri) {
         final String telemetryRequestId = Telemetry.generateNewRequestId();
         ApiEvent.Builder apiEventBuilder = createApiEventBuilder(telemetryRequestId, ACQUIRE_TOKEN_SILENT_ASYNC_WITH_USER);
-        acquireTokenSilent(scopes, extraQueryParams, authority, callback, telemetryRequestId, apiEventBuilder);
+        acquireTokenSilent(scopes, extraQueryParams, authority, callback, telemetryRequestId, apiEventBuilder, redirectUri);
     }
 
 
@@ -619,20 +612,6 @@ public final class PublicClientApplication {
             throw new IllegalArgumentException("client id missing from manifest");
         }
         mClientId = clientId;
-
-        // TODO: Comment out for now. As discussed, redirect should be computed during runtime, developer needs to put
-//        final String redirectUri = applicationInfo.metaData.getString(REDIRECT_META_DATA);
-//        if (!MsalUtils.isEmpty(redirectUri)) {
-//            mRedirectUri = redirectUri;
-//        }
-    }
-
-    // TODO: if no more input validation is needed, this could be moved back to the constructor.
-    private void validateInputParameters() {
-        if (!MsalUtils.hasCustomTabRedirectActivity(mAppContext, mRedirectUri)) {
-            throw new IllegalStateException("App doesn't have the correct configuration for "
-                    + BrowserTabActivity.class.getSimpleName() + ".");
-        }
     }
 
     private void checkInternetPermission() {
@@ -645,25 +624,16 @@ public final class PublicClientApplication {
         }
     }
 
-    /**
-     * Redirect uri will the in the format of msauth-clientid://appPackageName.
-     * The sdk will comupte the redirect when the PublicClientApplication is initialized.
-     */
-    private String createRedirectUri(final String clientId) {
-        return "msal" + clientId + "://auth";
-    }
-
-
     private void acquireTokenInteractive(final Activity activity, final String[] scopes, final String loginHint, final UiBehavior uiBehavior,
                                          final String extraQueryParams, final String[] extraScopesToConsent,
                                          final String authority, final User user, final AuthenticationCallback callback,
-                                         final String telemetryRequestId, final ApiEvent.Builder apiEventBuilder) {
+                                         final String telemetryRequestId, final ApiEvent.Builder apiEventBuilder, String redirectUri) {
         if (callback == null) {
             throw new IllegalArgumentException("callback is null");
         }
 
         final AuthenticationRequestParameters requestParameters = getRequestParameters(authority, scopes, loginHint,
-                extraQueryParams, uiBehavior, user, telemetryRequestId);
+                extraQueryParams, uiBehavior, user, telemetryRequestId, redirectUri);
 
         // add properties to our telemetry data
         apiEventBuilder
@@ -711,13 +681,13 @@ public final class PublicClientApplication {
     }
 
     private void acquireTokenSilent(final String[] scopes, final String extraQueryParams, final String authority,
-                                    final AuthenticationCallback callback, final String telemetryRequestId, final ApiEvent.Builder apiEventBuilder) {
+                                    final AuthenticationCallback callback, final String telemetryRequestId, final ApiEvent.Builder apiEventBuilder, final String redirectUri) {
         if (callback == null) {
             throw new IllegalArgumentException("callback is null");
         }
 
         final AuthenticationRequestParameters requestParameters = getRequestParameters(authority, scopes, null,
-                extraQueryParams, UiBehavior.NONE, null, telemetryRequestId);
+                extraQueryParams, UiBehavior.NONE, null, telemetryRequestId, redirectUri);
 
         // add properties to our telemetry data
         apiEventBuilder
@@ -730,7 +700,7 @@ public final class PublicClientApplication {
 
     private AuthenticationRequestParameters getRequestParameters(final String authority, final String[] scopes,
                                                                  final String loginHint, final String extraQueryParam,
-                                                                 final UiBehavior uiBehavior, final User user, final String telemetryRequestId) {
+                                                                 final UiBehavior uiBehavior, final User user, final String telemetryRequestId, final String redirectUri) {
         final Authority authorityForRequest = MsalUtils.isEmpty(authority) ? Authority.createAuthority(mAuthorityString, mValidateAuthority)
                 : Authority.createAuthority(authority, mValidateAuthority);
         // set correlation if not developer didn't set it.
@@ -738,7 +708,7 @@ public final class PublicClientApplication {
         final Set<String> scopesAsSet = MsalUtils.convertArrayToSet(scopes);
 
         return AuthenticationRequestParameters.create(authorityForRequest, mTokenCache, scopesAsSet, mClientId,
-                mRedirectUri, loginHint, extraQueryParam, uiBehavior, user, mSliceParameters, new RequestContext(correlationId, mComponent, telemetryRequestId));
+                redirectUri, loginHint, extraQueryParam, uiBehavior, user, mSliceParameters, new RequestContext(correlationId, mComponent, telemetryRequestId));
     }
 
     private ApiEvent.Builder createApiEventBuilder(final String telemetryRequestId, final String apiId) {

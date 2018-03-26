@@ -97,9 +97,10 @@ final class InteractiveRequest extends BaseRequest {
             throw new MsalClientException(MsalClientException.UNSUPPORTED_ENCODING, e.getMessage(), e);
         }
 
-        final Intent intentToLaunch = new Intent(mContext, AuthenticationActivity.class);
+        final Intent intentToLaunch = new Intent(mContext, WebAuthenticationActivity.class);
         intentToLaunch.putExtra(Constants.REQUEST_URL_KEY, authorizeUri);
         intentToLaunch.putExtra(Constants.REQUEST_ID, mRequestId);
+        intentToLaunch.putExtra(Constants.REQUEST_REDIRECT, mAuthRequestParameters.getRedirectUri());
         intentToLaunch.putExtra(
                 Constants.TELEMETRY_REQUEST_ID,
                 mAuthRequestParameters.getRequestContext().getTelemetryRequestId().toString()

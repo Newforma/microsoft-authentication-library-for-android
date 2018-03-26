@@ -264,7 +264,7 @@ public class SignInActivity extends AppCompatActivity {
                     mAuthority, getMsalCallback());
         } else {
             mPublicClientApplication.acquireToken(SignInActivity.this, mScopes, mLoginHint, mUiBehavior, mExtraQueryParam, mAdditionalScopes,
-                    mAuthority, getMsalCallback());
+                    mAuthority, getMsalCallback(), "");
         }
     }
 
