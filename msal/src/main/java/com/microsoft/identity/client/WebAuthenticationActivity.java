@@ -24,11 +24,16 @@
 package com.microsoft.identity.client;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.net.http.SslError;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
 import android.webkit.CookieManager;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -38,6 +43,7 @@ import java.util.Locale;
 
 public final class WebAuthenticationActivity extends Activity {
 
+    static final int BACK_PRESSED_CANCEL_DIALOG_STEPS = -3;
     private static final String TAG = WebAuthenticationActivity.class.getSimpleName(); //NOPMD
 
     private String mRequestUrl;
@@ -48,6 +54,7 @@ public final class WebAuthenticationActivity extends Activity {
     private String mTelemetryRequestId;
 
     private WebView mWebView;
+    private ProgressDialog mSpinner;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -108,23 +115,7 @@ public final class WebAuthenticationActivity extends Activity {
         mWebView.getSettings().setUseWideViewPort(true);
         mWebView.getSettings().setBuiltInZoomControls(true);
         mWebView.setWebViewClient(new CustomWebViewClient());
-    }
-
-    /**
-     * OnNewIntent will be called before onResume.
-     *
-     * @param intent
-     */
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        Logger.info(TAG, null, "onNewIntent is called, received redirect from system webview.");
-        final String url = intent.getStringExtra(Constants.CUSTOM_TAB_REDIRECT);
-
-        final Intent resultIntent = new Intent();
-        resultIntent.putExtra(Constants.AUTHORIZATION_FINAL_URL, url);
-        returnToCaller(Constants.UIResponse.AUTH_CODE_COMPLETE,
-                resultIntent);
+        mWebView.setVisibility(View.INVISIBLE);
     }
 
     @Override
@@ -150,6 +141,11 @@ public final class WebAuthenticationActivity extends Activity {
                 mWebView.loadUrl(mRequestUrl);
             }
         });
+
+        mSpinner = new ProgressDialog(this);
+        mSpinner.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        mSpinner.setMessage(this.getText(this.getResources().getIdentifier("app_loading", "string",
+                this.getPackageName())));
     }
 
     @Override
@@ -160,6 +156,24 @@ public final class WebAuthenticationActivity extends Activity {
 
         outState.putString(Constants.REQUEST_URL_KEY, mRequestUrl);
         outState.putString(Constants.TELEMETRY_REQUEST_ID, mTelemetryRequestId);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mSpinner != null) {
+            mSpinner.dismiss();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        if (!mWebView.canGoBackOrForward(BACK_PRESSED_CANCEL_DIALOG_STEPS)) {
+            cancelRequest();
+        } else {
+            mWebView.goBack();
+        }
     }
 
     @Override
@@ -210,7 +224,49 @@ public final class WebAuthenticationActivity extends Activity {
         returnToCaller(Constants.UIResponse.AUTH_CODE_ERROR, errorIntent);
     }
 
+    private void showSpinner(boolean show) {
+        if (!WebAuthenticationActivity.this.isFinishing()
+                && !WebAuthenticationActivity.this.isChangingConfigurations() && mSpinner != null) {
+            if (show && !mSpinner.isShowing()) {
+                mSpinner.show();
+            }
+
+            if (!show && mSpinner.isShowing()) {
+                mSpinner.dismiss();
+            }
+        }
+    }
+
     class CustomWebViewClient extends WebViewClient {
+
+        @Override
+        public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+            super.onReceivedError(view, errorCode, description, failingUrl);
+            showSpinner(false);
+            sendError(MsalClientException.WEBVIEW_ERROR, description);
+        }
+
+        @Override
+        public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+            super.onReceivedSslError(view, handler, error);
+            showSpinner(false);
+            sendError(MsalClientException.WEBVIEW_ERROR, error.toString());
+        }
+
+        @Override
+        public void onPageStarted(WebView view, String url, Bitmap favicon) {
+            super.onPageStarted(view, url, favicon);
+            showSpinner(true);
+        }
+
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+            view.setVisibility(View.VISIBLE);
+            if (!url.startsWith("about:blank")) {
+                showSpinner(false);
+            }
+        }
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
@@ -224,5 +280,6 @@ public final class WebAuthenticationActivity extends Activity {
                 return super.shouldOverrideUrlLoading(view, url);
             }
         }
+
     }
 }

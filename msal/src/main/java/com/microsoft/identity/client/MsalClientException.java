@@ -122,6 +122,8 @@ public final class MsalClientException extends MsalException {
      */
     public static final String CHROME_NOT_INSTALLED = "chrome_not_installed";
 
+    public static final String WEBVIEW_ERROR = "webview_error";
+
     /**
      * The user provided in the acquire token request doesn't match the user returned from server.
      */
