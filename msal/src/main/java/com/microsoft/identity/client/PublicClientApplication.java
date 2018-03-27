@@ -92,7 +92,7 @@ import static com.microsoft.identity.client.EventConstants.ApiId.API_ID_ACQUIRE_
  * </p>
  * </p>
  */
-public final class PublicClientApplication {
+public class PublicClientApplication {
     private static final String TAG = PublicClientApplication.class.getSimpleName();
 
     private static final String CLIENT_ID_META_DATA = "com.microsoft.identity.client.ClientId";
