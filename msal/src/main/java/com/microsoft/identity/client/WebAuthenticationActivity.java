@@ -269,7 +269,10 @@ public final class WebAuthenticationActivity extends Activity {
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
-            if(mRequestRedirectUri != null
+            if(url.contains("access_denied")) {
+                cancelRequest();
+                return false;
+            } else if(mRequestRedirectUri != null
                     && url.toLowerCase(Locale.US).startsWith(mRequestRedirectUri.toLowerCase(Locale.US))) {
                 final Intent resultIntent = new Intent();
                 resultIntent.putExtra(Constants.AUTHORIZATION_FINAL_URL, url);
