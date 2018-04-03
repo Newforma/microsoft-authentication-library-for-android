@@ -123,7 +123,6 @@ public final class WebAuthenticationActivity extends Activity {
         super.onResume();
 
         if (mRestarted) {
-            cancelRequest();
             return;
         }
 
@@ -270,7 +269,8 @@ public final class WebAuthenticationActivity extends Activity {
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
-            if(url.toLowerCase(Locale.US).startsWith(mRequestRedirectUri.toLowerCase(Locale.US))) {
+            if(mRequestRedirectUri != null
+                    && url.toLowerCase(Locale.US).startsWith(mRequestRedirectUri.toLowerCase(Locale.US))) {
                 final Intent resultIntent = new Intent();
                 resultIntent.putExtra(Constants.AUTHORIZATION_FINAL_URL, url);
                 returnToCaller(Constants.UIResponse.AUTH_CODE_COMPLETE,

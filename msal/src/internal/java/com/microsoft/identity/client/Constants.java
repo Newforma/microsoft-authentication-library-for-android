@@ -26,7 +26,7 @@ package com.microsoft.identity.client;
 /**
  * MSAL internal class for constants.
  */
-final class Constants {
+public final class Constants {
 
     // Private constructor to prevent class from being initialized.
     private Constants() {
@@ -44,16 +44,16 @@ final class Constants {
 
     public static final String AUTHORIZATION_FINAL_URL = "com.microsoft.identity.client.finalUrl";
 
-    static final class UIResponse {
-        static final int CANCEL = 2001;
+    public static final class UIResponse {
+        public static final int CANCEL = 2001;
 
-        static final int AUTH_CODE_ERROR = 2002;
+        public static final int AUTH_CODE_ERROR = 2002;
 
-        static final int AUTH_CODE_COMPLETE = 2003;
+        public static final int AUTH_CODE_COMPLETE = 2003;
 
-        static final String ERROR_CODE = "error_code";
+        public static final String ERROR_CODE = "error_code";
 
-        static final String ERROR_DESCRIPTION = "error_description";
+        public static final String ERROR_DESCRIPTION = "error_description";
     }
 
     static final class MsalErrorMessage {

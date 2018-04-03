@@ -698,6 +698,14 @@ public class PublicClientApplication {
         request.getToken(callback);
     }
 
+    public void createAccount(@NonNull final Activity activity, @NonNull final String signUpUrl,
+                              @NonNull final AuthenticationCallback callback, @NonNull final String redirectUri,
+                              @NonNull final String authority, @NonNull final String scopes) {
+        final NewAccountInteractiveRequest request = new NewAccountInteractiveRequest(activity,
+                signUpUrl, redirectUri, authority, scopes);
+        request.getToken(callback);
+    }
+
     private AuthenticationRequestParameters getRequestParameters(final String authority, final String[] scopes,
                                                                  final String loginHint, final String extraQueryParam,
                                                                  final UiBehavior uiBehavior, final User user, final String telemetryRequestId, final String redirectUri) {

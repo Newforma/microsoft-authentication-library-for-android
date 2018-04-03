@@ -45,15 +45,15 @@ import java.util.concurrent.CountDownLatch;
  * Request handling the interactive flow. Interactive flow skips the cache look, will launch the web UI(either custom
  * tab or fall back to webview if custom tab is not available).
  */
-final class InteractiveRequest extends BaseRequest {
+class InteractiveRequest extends BaseRequest {
     private static final String TAG = InteractiveRequest.class.getSimpleName();
     private final Set<String> mExtraScopesToConsent = new HashSet<>();
 
     static final int BROWSER_FLOW = 1001;
-    private static AuthorizationResult sAuthorizationResult;
-    private static CountDownLatch sResultLock = new CountDownLatch(1);
+    protected static AuthorizationResult sAuthorizationResult;
+    protected static CountDownLatch sResultLock = new CountDownLatch(1);
 
-    private final ActivityWrapper mActivityWrapper;
+    protected final ActivityWrapper mActivityWrapper;
     private PKCEChallengeFactory.PKCEChallenge mPKCEChallenge;
 
     /**
@@ -67,11 +67,6 @@ final class InteractiveRequest extends BaseRequest {
                        final String[] extraScopesToConsent) {
         super(activity.getApplicationContext(), authRequestParameters);
         mActivityWrapper = new ActivityWrapper(activity);
-
-        // validate redirect
-        if (MsalUtils.isEmpty(authRequestParameters.getRedirectUri())) {
-            throw new IllegalArgumentException("redirect is empty");
-        } // TODO: We need to validate redirect is as expected to make custom tab work.
 
         // validate extra scope
         if (extraScopesToConsent != null && extraScopesToConsent.length > 0) {
@@ -165,7 +160,7 @@ final class InteractiveRequest extends BaseRequest {
         return authorizationUrl;
     }
 
-    private boolean resolveIntent(final Intent intent) {
+    protected boolean resolveIntent(final Intent intent) {
         final ResolveInfo resolveInfo = mContext.getPackageManager().resolveActivity(intent, 0);
         return resolveInfo != null;
     }
@@ -189,7 +184,9 @@ final class InteractiveRequest extends BaseRequest {
         addUiBehaviorToRequestParameters(requestParameters);
 
         // append state in the query parameters
-        requestParameters.put(OauthConstants.Oauth2Parameters.STATE, encodeProtocolState());
+        requestParameters.put(OauthConstants.Oauth2Parameters.STATE, encodeProtocolState(
+                mAuthRequestParameters.getAuthority().getAuthority(),
+                MsalUtils.convertSetToString(mAuthRequestParameters.getScope(), " ")));
 
         // Enforce session continuation if user is provided in the API request
         addSessionContinuationQps(requestParameters);
@@ -250,15 +247,7 @@ final class InteractiveRequest extends BaseRequest {
         }
     }
 
-    private String encodeProtocolState() throws UnsupportedEncodingException {
-        final String state = String.format("a=%s&r=%s", MsalUtils.urlFormEncode(
-                mAuthRequestParameters.getAuthority().getAuthority()),
-                MsalUtils.urlFormEncode(MsalUtils.convertSetToString(
-                        mAuthRequestParameters.getScope(), " ")));
-        return Base64.encodeToString(state.getBytes("UTF-8"), Base64.NO_PADDING | Base64.URL_SAFE);
-    }
-
-    private void processAuthorizationResult(final AuthorizationResult authorizationResult) throws MsalUserCancelException,
+    protected void processAuthorizationResult(final AuthorizationResult authorizationResult) throws MsalUserCancelException,
             MsalServiceException, MsalClientException {
         if (authorizationResult == null) {
             Logger.error(TAG, mAuthRequestParameters.getRequestContext(), "Authorization result is null", null);
@@ -286,7 +275,7 @@ final class InteractiveRequest extends BaseRequest {
         }
     }
 
-    private void verifyStateInResponse(final String stateInResponse) throws MsalClientException {
+    protected void verifyStateInResponse(final String stateInResponse) throws MsalClientException {
         final String decodeState = decodeState(stateInResponse);
         final Map<String, String> stateMap = MsalUtils.decodeUrlToMap(decodeState, "&");
 
@@ -302,7 +291,7 @@ final class InteractiveRequest extends BaseRequest {
         }
     }
 
-    private String decodeState(final String encodedState) {
+    protected String decodeState(final String encodedState) {
         if (MsalUtils.isEmpty(encodedState)) {
             return null;
         }

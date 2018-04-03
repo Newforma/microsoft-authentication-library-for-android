@@ -72,6 +72,12 @@ final class AuthenticationRequestParameters {
         mRequestContext = requestContext;
     }
 
+    private AuthenticationRequestParameters() {
+        mTokenCache = null;
+        mClientId = null;
+        mRequestContext = null;
+    }
+
     /**
      * Creates the {@link AuthenticationRequestParameters} with all the given parameters.
      */
@@ -96,6 +102,10 @@ final class AuthenticationRequestParameters {
     static AuthenticationRequestParameters create(final Authority authority, final TokenCache tokenCache, final Set<String> scope,
                                                   final String clientId, final String sliceParameters, final RequestContext requestContext) {
         return new AuthenticationRequestParameters(authority, tokenCache, scope, clientId, sliceParameters, requestContext);
+    }
+
+    static AuthenticationRequestParameters create() {
+        return new AuthenticationRequestParameters();
     }
 
     Authority getAuthority() {

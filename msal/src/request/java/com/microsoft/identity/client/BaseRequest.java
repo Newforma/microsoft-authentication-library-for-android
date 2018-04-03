@@ -27,8 +27,10 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Handler;
+import android.util.Base64;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -39,7 +41,7 @@ import java.util.concurrent.Executors;
 /**
  * Base request class for handling either interactive request or silent request.
  */
-abstract class BaseRequest {
+public abstract class BaseRequest {
     private static final String TAG = BaseRequest.class.getSimpleName();
     private static final ExecutorService THREAD_EXECUTOR = Executors.newSingleThreadExecutor();
     private Handler mHandler;
@@ -84,13 +86,6 @@ abstract class BaseRequest {
         mContext = appContext;
         mAuthRequestParameters = authenticationRequestParameters;
         mRequestContext = authenticationRequestParameters.getRequestContext();
-
-        if (authenticationRequestParameters.getScope() == null
-                || authenticationRequestParameters.getScope().isEmpty()) {
-            throw new IllegalArgumentException("scope is empty or null");
-        }
-
-        validateInputScopes(authenticationRequestParameters.getScope());
     }
 
     /**
@@ -206,6 +201,12 @@ abstract class BaseRequest {
      */
     boolean isAccessTokenReturned() {
         return !MsalUtils.isEmpty(mTokenResponse.getAccessToken()) || !MsalUtils.isEmpty(mTokenResponse.getRawIdToken());
+    }
+
+    public static String encodeProtocolState(final String authority, final String scopes) throws UnsupportedEncodingException {
+        final String state = String.format("a=%s&r=%s", MsalUtils.urlFormEncode(authority),
+                MsalUtils.urlFormEncode(scopes));
+        return Base64.encodeToString(state.getBytes("UTF-8"), Base64.NO_PADDING | Base64.URL_SAFE);
     }
 
     /**
