@@ -50,7 +50,7 @@ final class IdToken {
      */
     IdToken(final String rawIdToken) throws MsalClientException {
         if (MsalUtils.isEmpty(rawIdToken)) {
-            throw new IllegalArgumentException("null or empty raw idtoken");
+            throw new MsalClientException(MsalClientException.INVALID_JWT, "Empty Id token returned from server.");
         }
 
         // set all the instance variables.

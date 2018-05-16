@@ -86,6 +86,10 @@ final class AuthorizationResult {
     }
 
     public static AuthorizationResult parseAuthorizationResponse(final String returnUri) {
+        if(MsalUtils.isEmpty(returnUri)) {
+            return getAuthorizationResultWithInvalidServerResponse();
+        }
+
         final Uri responseUri = Uri.parse(returnUri);
         final String fragmentResult = responseUri.getFragment();
         final String queryResult = responseUri.getQuery();
